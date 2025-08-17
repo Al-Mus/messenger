@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Футуристичный Чат (Offline)</title>
+    <style>
+        :root {
+            --bg-main: #1e1f24;
+            --bg-panel: #2f3136;
+            --bg-chat: #36393f;
+            --bg-hover: #40444b;
+            --bg-sent: #5865f2;
+            --bg-received: #4f545c;
+            --text-main: white;
+        }
+        body.light {
+            --bg-main: #f5f5f5;
+            --bg-panel: #e0e0e0;
+            --bg-chat: #ffffff;
+            --bg-hover: #d5d5d5;
+            --bg-sent: #4a90e2;
+            --bg-received: #cccccc;
+            --text-main: #000;
+        }
+        body {
+            margin: 0;
+            font-family: "Segoe UI", sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            display: flex;
+            height: 100vh;
+        }
+        #rooms {
+            width: 200px;
+            background-color: var(--bg-panel);
+            padding: 10px;
+            box-sizing: border-box;
+        }
+        .room {
+            padding: 10px;
+            cursor: pointer;
+            border-radius: 5px;
+            color: var(--text-main);
+        }
+        .room:hover {
+            background-color: var(--bg-hover);
+        }
+        #chat {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--bg-chat);
+        }
+        #chatHeader {
+            padding: 15px;
+            background-color: var(--bg-panel);
+            border-bottom: 1px solid #202225;
+            font-size: 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        #messages {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+        .message {
+            margin-bottom: 10px;
+            max-width: 70%;
+            padding: 8px 12px;
+            border-radius: 10px;
+            word-wrap: break-word;
+        }
+        .sent {
+            background-color: var(--bg-sent);
+            align-self: flex-end;
+        }
+        .received {
+            background-color: var(--bg-received);
+            align-self: flex-start;
+        }
+        #inputArea {
+            display: flex;
+            padding: 10px;
+            background-color: var(--bg-panel);
+        }
+        #messageInput {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            outline: none;
+        }
+        #sendBtn {
+            margin-left: 10px;
+            background-color: var(--bg-sent);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #sendBtn:hover {
+            background-color: #4752c4;
+        }
+        #users {
+            width: 200px;
+            background-color: var(--bg-panel);
+            padding: 10px;
+            box-sizing: border-box;
+        }
+        .user {
+            padding: 5px;
+            border-bottom: 1px solid #202225;
+        }
+        #themeToggle {
+            background: none;
+            border: none;
+            color: var(--text-main);
+            cursor: pointer;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body class="dark">
+    <div id="rooms">
+        <div class="room" onclick="selectRoom('Room1')">Room1</div>
+        <div class="room" onclick="selectRoom('Room2')">Room2</div>
+        <div class="room" onclick="selectRoom('Room3')">Room3</div>
+    </div>
+
+    <div id="chat">
+        <div id="chatHeader">
+            <span id="roomName">Room1</span>
+            <button id="themeToggle">🌙</button>
+        </div>
+        <div id="messages"></div>
+        <div id="inputArea">
+            <input type="text" id="messageInput" placeholder="Введите сообщение...">
+            <button id="sendBtn">Отправить</button>
+        </div>
+    </div>
+
+    <div id="users">
+        <h4>Онлайн (локально)</h4>
+        <div id="userList"></div>
+    </div>
+
+    <script>
+        let username = prompt("Введите имя:") || "User";
+        let currentRoom = "Room1";
+
+        document.getElementById("roomName").textContent = currentRoom;
+
+        // === СООБЩЕНИЯ ===
+        function getMessages(room) {
+            return JSON.parse(localStorage.getItem("chat_" + room)) || [];
+        }
+        function saveMessages(room, msgs) {
+            localStorage.setItem("chat_" + room, JSON.stringify(msgs));
+        }
+        function renderMessages() {
+            const messagesDiv = document.getElementById("messages");
+            messagesDiv.innerHTML = "";
+            let msgs = getMessages(currentRoom);
+            msgs.forEach(m => {
+                const div = document.createElement("div");
+                div.classList.add("message", m.username === username ? "sent" : "received");
+                div.textContent = `${m.username}: ${m.text}`;
+                messagesDiv.appendChild(div);
+            });
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+        function sendMessage() {
+            const input = document.getElementById("messageInput");
+            if (input.value.trim() === "") return;
+            let msgs = getMessages(currentRoom);
+            msgs.push({username, text: input.value});
+            saveMessages(currentRoom, msgs);
+            input.value = "";
+            renderMessages();
+        }
+        document.getElementById("sendBtn").addEventListener("click", sendMessage);
+        document.getElementById("messageInput").addEventListener("keypress", e => {
+            if (e.key === "Enter") sendMessage();
+        });
+        function selectRoom(room) {
+            currentRoom = room;
+            document.getElementById("roomName").textContent = currentRoom;
+            renderMessages();
+        }
+
+        // === ПОЛЬЗОВАТЕЛИ ===
+        function getUsers() {
+            return JSON.parse(localStorage.getItem("users")) || [];
+        }
+        function saveUsers(users) {
+            localStorage.setItem("users", JSON.stringify(users));
+        }
+        function renderUsers() {
+            const userList = document.getElementById("userList");
+            userList.innerHTML = "";
+            getUsers().forEach(u => {
+                const div = document.createElement("div");
+                div.classList.add("user");
+                div.textContent = u;
+                userList.appendChild(div);
+            });
+        }
+        function addUser(name) {
+            let users = getUsers();
+            if (!users.includes(name)) {
+                users.push(name);
+                saveUsers(users);
+            }
+            renderUsers();
+        }
+        function removeUser(name) {
+            let users = getUsers().filter(u => u !== name);
+            saveUsers(users);
+            renderUsers();
+        }
+
+        // === СИНХРОНИЗАЦИЯ МЕЖДУ ВКЛАДКАМИ ===
+        window.addEventListener("storage", e => {
+            if (e.key === "users" || e.key.startsWith("chat_")) {
+                renderUsers();
+                renderMessages();
+            }
+        });
+
+        // Добавляем себя в список при входе
+        addUser(username);
+
+        // Убираем себя при закрытии вкладки
+        window.addEventListener("beforeunload", () => {
+            removeUser(username);
+        });
+
+        // === ТЕМЫ ===
+        document.getElementById("themeToggle").addEventListener("click", () => {
+            document.body.classList.toggle("light");
+            document.getElementById("themeToggle").textContent =
+                document.body.classList.contains("light") ? "☀️" : "🌙";
+        });
+
+        // Стартовый рендер
+        renderMessages();
+        renderUsers();
+    </script>
+</body>
+</html>
